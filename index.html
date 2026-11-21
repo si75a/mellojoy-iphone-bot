@@ -246,14 +246,21 @@ async function searchProducts() {
     button.textContent = "公式サイトで商品を確認";
     link.appendChild(button);
 
-    card.appendChild(link);
+        card.appendChild(link);
+
+    const addButton = document.createElement("button");
+    addButton.textContent = "カートに追加";
+    addButton.disabled = true;
+    addButton.title = "カート追加機能は接続確認後に有効化します";
+    card.appendChild(addButton);
+
     results.appendChild(card);
   });
 }
 
 // 日本時間の12:00〜12:02だけ監視
-const START = 0;
-const END = 24 * 60 * 60 * 1000;
+const START = 12 * 60 * 60 * 1000;
+const END = START + 2 * 60 * 1000;
 
 let monitorTimer = null;
 let monitoring = false;
