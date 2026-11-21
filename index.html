@@ -251,7 +251,82 @@ async function searchProducts() {
   });
 }
 
-loadProducts();
+// 日本時間の12:00〜12:02だけ監視
+const START = 12 * 60 * 60 * 1000;
+const END = START + 2 * 60 * 1000;
+
+let monitorTimer = null;
+let monitoring = false;
+
+function getJapanTime() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Tokyo",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date());
+
+  const values = {};
+  parts.forEach(p => values[p.type] = p.value);
+
+  return (
+    Number(values.hour) * 3600000 +
+    Number(values.minute) * 60000 +
+    Number(values.second) * 1000 +
+    new Date().getMilliseconds()
+  );
+}
+
+async function updateProducts() {
+  const status = document.getElementById("status");
+
+  try {
+    const response = await fetch(API, {
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error("取得失敗");
+    }
+
+    const data = await response.json();
+    products = data.products || [];
+
+    status.textContent =
+      `更新完了：${products.length}件`;
+  } catch (error) {
+    status.textContent = "商品データ取得に失敗しました。";
+  }
+}
+
+function startMonitor() {
+  if (monitoring) return;
+  monitoring = true;
+
+  const check = async () => {
+    const now = getJapanTime();
+
+    if (now >= END) {
+      clearInterval(monitorTimer);
+      monitoring = false;
+      document.getElementById("status").textContent =
+        "12:02になったため監視を終了しました。";
+      return;
+    }
+
+    if (now >= START) {
+      await updateProducts();
+      monitorTimer = setTimeout(check, 500);
+    } else {
+      monitorTimer = setTimeout(check, START - now);
+    }
+  };
+
+  check();
+}
+
+startMonitor();
 </script>
 
 </body>
