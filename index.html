@@ -251,9 +251,11 @@ async function searchProducts() {
     const addButton = document.createElement("button");
     addButton.textContent = "カートに追加";
 
-    const firstVariant = p.variants.find(v => v.available);
+    const firstVariant = Array.isArray(p.variants)
+      ? p.variants.find(v => v.available === true)
+      : null;
 
-    if (firstVariant) {
+    if (available === true && firstVariant) {
       addButton.disabled = false;
 
       addButton.onclick = () => {
@@ -261,12 +263,18 @@ async function searchProducts() {
           document.getElementById("quantity").value
         );
 
+        if (!Number.isInteger(quantity) || quantity < 1) {
+          return;
+        }
+
         addToCart(firstVariant.id, quantity);
       };
     } else {
       addButton.disabled = true;
       addButton.textContent = "売り切れ";
     }
+
+    card.appendChild(addButton);
 
     card.appendChild(addButton);
 
