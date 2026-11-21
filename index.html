@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mellojoy Bot</title>
+<style>
+body {
+  font-family: sans-serif;
+  background: #f7f5fa;
+  padding: 25px;
+  color: #333;
+}
+.container {
+  max-width: 450px;
+  margin: 40px auto;
+  background: white;
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 3px 15px #ddd;
+}
+h1 {
+  text-align: center;
+  color: #8d6bb5;
+}
+input, select, button {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 10px;
+  font-size: 16px;
+}
+input, select {
+  border: 1px solid #ccc;
+}
+button {
+  border: none;
+  background: #9876bd;
+  color: white;
+  font-weight: bold;
+}
+.note {
+  font-size: 13px;
+  color: #777;
+  line-height: 1.7;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1>Mellojoy Bot</h1>
+
+<p>探したい商品名</p>
+<input id="product" placeholder="例：Lスフレ">
+
+<p>購入数量</p>
+<select id="quantity">
+<option value="1">1個</option>
+<option value="2">2個</option>
+<option value="3">3個</option>
+<option value="4">4個</option>
+<option value="5">5個</option>
+</select>
+
+<button onclick="searchProduct()">商品を検索</button>
+
+<p class="note">
+入力した商品名でMellojoy公式サイトを検索します。
+商品・種類・価格を確認してからカートに追加してください。
+</p>
+</div>
+
+<script>
+function searchProduct() {
+  const name = document.getElementById("product").value.trim();
+
+  if (!name) {
+    alert("商品名を入力してください");
+    return;
+  }
+
+  const url =
+    "https://www.mellojoyjapan.com/search?q=" +
+    encodeURIComponent(name);
+
+  window.location.href = url;
+}
+</script>
+
+</body>
+</html>
