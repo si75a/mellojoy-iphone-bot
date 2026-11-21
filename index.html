@@ -252,8 +252,8 @@ async function searchProducts() {
 }
 
 // 日本時間の12:00〜12:02だけ監視
-const START = 12 * 60 * 60 * 1000;
-const END = START + 2 * 60 * 1000;
+const START = 0;
+const END = 24 * 60 * 60 * 1000;
 
 let monitorTimer = null;
 let monitoring = false;
