@@ -4,18 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mellojoy Bot</title>
+
 <style>
 body {
   font-family: sans-serif;
   background: #f7f5fa;
-  padding: 25px;
   color: #333;
+  padding: 20px;
 }
 .container {
-  max-width: 450px;
-  margin: 40px auto;
+  max-width: 500px;
+  margin: 20px auto;
   background: white;
-  padding: 25px;
+  padding: 22px;
   border-radius: 20px;
   box-shadow: 0 3px 15px #ddd;
 }
@@ -26,8 +27,8 @@ h1 {
 input, select, button {
   box-sizing: border-box;
   width: 100%;
-  padding: 15px;
-  margin-top: 15px;
+  padding: 14px;
+  margin: 10px 0;
   border-radius: 10px;
   font-size: 16px;
 }
@@ -40,53 +41,217 @@ button {
   color: white;
   font-weight: bold;
 }
-.note {
-  font-size: 13px;
+.product {
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 15px;
+}
+.product img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+}
+.stock {
+  font-weight: bold;
+}
+.available {
+  color: green;
+}
+.soldout {
+  color: #d44;
+}
+.small {
   color: #777;
-  line-height: 1.7;
+  font-size: 13px;
 }
 </style>
 </head>
-<body>
 
+<body>
 <div class="container">
+
 <h1>Mellojoy Bot</h1>
 
 <p>探したい商品名</p>
-<input id="product" placeholder="例：Lスフレ">
+<input id="keyword" placeholder="例：Lスフレ">
 
 <p>購入数量</p>
 <select id="quantity">
-<option value="1">1個</option>
-<option value="2">2個</option>
-<option value="3">3個</option>
-<option value="4">4個</option>
-<option value="5">5個</option>
+  <option value="1">1個</option>
+  <option value="2">2個</option>
+  <option value="3">3個</option>
+  <option value="4">4個</option>
+  <option value="5">5個</option>
 </select>
 
-<button onclick="searchProduct()">商品を検索</button>
+<button onclick="searchProducts()">商品を検索</button>
 
-<p class="note">
-入力した商品名でMellojoy公式サイトを検索します。
-商品・種類・価格を確認してからカートに追加してください。
-</p>
+<p id="status" class="small"></p>
+<div id="results"></div>
+
 </div>
 
 <script>
-function searchProduct() {
-  const name = document.getElementById("product").value.trim();
+const API =
+"https://www.mellojoyjapan.com/products.json?limit=250";
 
-  if (!name) {
+let products = [];
+
+async function loadProducts() {
+  const status = document.getElementById("status");
+
+  status.textContent = "商品データを取得しています...";
+
+  try {
+    const response = await fetch(API);
+
+    if (!response.ok) {
+      throw new Error("商品データを取得できませんでした");
+    }
+
+    const data = await response.json();
+    products = data.products || [];
+
+    status.textContent =
+      products.length + "件の商品データを取得しました。";
+
+    return true;
+
+  } catch (error) {
+    status.textContent =
+      "取得できませんでした。通信制限（CORS）の可能性があります。";
+    return false;
+  }
+}
+
+function normalize(text) {
+  return text
+    .toLowerCase()
+    .replace(/[\s　\-ー・]/g, "");
+}
+
+function scoreProduct(title, keyword) {
+  const t = normalize(title);
+  const k = normalize(keyword);
+
+  if (t === k) return 100;
+  if (t.includes(k)) return 80;
+
+  const parts = keyword.trim().split(/[\s　]+/);
+  let score = 0;
+
+  for (const part of parts) {
+    if (t.includes(normalize(part))) {
+      score += 20;
+    }
+  }
+
+  return score;
+}
+
+async function searchProducts() {
+  const keyword =
+    document.getElementById("keyword").value.trim();
+
+  const results = document.getElementById("results");
+  const status = document.getElementById("status");
+
+  if (!keyword) {
     alert("商品名を入力してください");
     return;
   }
 
-  const url =
-    "https://www.mellojoyjapan.com/search?q=" +
-    encodeURIComponent(name);
+  results.innerHTML = "";
 
-  window.location.href = url;
+  if (products.length === 0) {
+    const success = await loadProducts();
+    if (!success) return;
+  }
+
+  const matched = products
+    .map(product => ({
+      product,
+      score: scoreProduct(product.title, keyword)
+    }))
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (matched.length === 0) {
+    status.textContent = "一致する商品が見つかりませんでした。";
+    return;
+  }
+
+  status.textContent =
+    matched.length + "件の商品が見つかりました。";
+
+  const quantity =
+    document.getElementById("quantity").value;
+
+  matched.forEach(item => {
+    const p = item.product;
+
+    const available = p.variants.some(v => v.available);
+
+    const image = p.images && p.images.length
+      ? p.images[0].src
+      : "";
+
+    const price = p.variants.length
+      ? p.variants[0].price
+      : "不明";
+
+    const card = document.createElement("div");
+    card.className = "product";
+
+    const title = document.createElement("h3");
+    title.textContent = p.title;
+    card.appendChild(title);
+
+    if (image) {
+      const img = document.createElement("img");
+      img.src = image;
+      img.alt = p.title;
+      card.appendChild(img);
+    }
+
+    const priceText = document.createElement("p");
+    priceText.textContent = "価格：" + price + "円";
+    card.appendChild(priceText);
+
+    const stock = document.createElement("p");
+    stock.className = "stock " +
+      (available ? "available" : "soldout");
+
+    stock.textContent =
+      available ? "在庫あり" : "売り切れ";
+
+    card.appendChild(stock);
+
+    const variantText = document.createElement("p");
+    variantText.className = "small";
+    variantText.textContent =
+      "商品コード：" +
+      p.variants.map(v => v.sku || v.id).join(" / ");
+
+    card.appendChild(variantText);
+
+    const link = document.createElement("a");
+    link.href =
+      "https://www.mellojoyjapan.com/products/" + p.handle;
+    link.target = "_blank";
+    link.rel = "noopener";
+
+    const button = document.createElement("button");
+    button.textContent = "公式サイトで商品を確認";
+    link.appendChild(button);
+
+    card.appendChild(link);
+    results.appendChild(card);
+  });
 }
+
+loadProducts();
 </script>
 
 </body>
